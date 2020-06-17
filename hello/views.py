@@ -8,6 +8,8 @@ def index(request):
     # return HttpResponse('Hello from Python!')
     return render(request, "index.html")
 
+def menu(request):
+    return render(request, "WC_menu.html")
 
 def db(request):
 
