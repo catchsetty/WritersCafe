@@ -9,7 +9,7 @@ def index(request):
     return render(request, "index.html")
 
 def menu(request):
-    return render(request, "WC_menu.html")
+    return render(request, "menu.html")
 
 def db(request):
 
