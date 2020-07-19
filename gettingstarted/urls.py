@@ -16,7 +16,6 @@ import orders.views
 
 urlpatterns = [
     path("", orders.views.index, name="index"),
-    path("db/", orders.views.db, name="db"),
     path("admin/", admin.site.urls),
     path("menu/", orders.views.menu, name="Menu"),
 ]
