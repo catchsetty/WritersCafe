@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "hello",
+    "orders",
 ]
 
 MIDDLEWARE = [
@@ -79,8 +79,12 @@ WSGI_APPLICATION = "gettingstarted.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE" : "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3")
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'setty',
+        'USER': '',
+        'PASSWORD': '',
+        'HOST': '',
+        'PORT': '5432'
     }
 }
 
