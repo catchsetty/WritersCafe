@@ -80,7 +80,7 @@ WSGI_APPLICATION = "gettingstarted.wsgi.application"
 DATABASES = {
     "default": {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'setty',
+        'NAME': 'phoenixdb',
         'USER': '',
         'PASSWORD': '',
         'HOST': '',
