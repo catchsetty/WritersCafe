@@ -1,21 +1,42 @@
-{% extends "base.html" %}
-{% load staticfiles %}
-
-{% block content %}
-  <div class="container">
 
 
-<h2>Page View Report</h2>
-
-
-<ul>
-
-{% for greeting in greetings %}
-    <li>{{ greeting.when }}</li>
-{% endfor %}
-
-</ul>
-
-</div>
-
-{% endblock %}
+<body>
+    <form method="POST">
+        {% csrf_token %}
+        <center>
+            From: <input type="date" name="fromdate">
+            To: <input type="date" name="todate">
+            <input type="submit" value="Search">
+            <hr/>
+            <hr/>
+        <table>
+            <tr>
+                <th>Order ID</th>
+                <th>Ingredient Name</th>
+                <th>Ordered Date</th>
+                <th>Quantity</th>
+                <th>Total</th>
+            </tr>
+            {% for order in orderDetails %}
+            <tr>
+                <td>
+                    {{order.order_id}}
+                </td>
+                <td>
+                    {{order.ingredient_id.name}}
+                </td>
+                <td>
+                    {{order.transaction_date}}
+                </td>
+                <td>
+                    {{order.quantity}}
+                </td>
+                <td>
+                    {{order.itemTotal}}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        </center>
+    </form>
+</body>

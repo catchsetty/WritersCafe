@@ -1,26 +1,25 @@
-from django.contrib import admin
-from .models import Category, Ingredients, Suppliers, Status, Orders, OrderDetails, Stock, CashRecord, CashRecordDetail
+from django.contrib import admin, messages
+from .models import Category, Ingredients, Suppliers, Orders, OrderDetails, CashRecord, CashRecordDetail, StockInstance, StockDetails
 
 # Register your models here.
 admin.site.register(Category)
 admin.site.register(Suppliers)
-admin.site.register(Status)
-admin.site.register(Stock)
 admin.site.register(Ingredients)
 admin.site.register(OrderDetails)
 
 
 class OrderDetailsInline(admin.TabularInline):
     model = OrderDetails
-    readonly_fields = ['measurement', 'item_total']
-    exclude = ['itemTotal'] # To not to display db column
+    readonly_fields = ['measurement', 'unitPrice_before_tax', 'unitPrice_tax', 'itemTotal']
+    #prepopulated_fields = {'unitPrice_tax': ('quantity',)}
+
 
     def measurement(self, obj):
         return str(obj.ingredient_id.per)
 
-    def item_total(self, obj):
-        return str(obj.quantity * obj.unitPrice)
-    item_total.short_description = ("TOTAL")
+    #def item_total(self, obj):
+    #    return str(obj.quantity * obj.unitPrice)
+    #item_total.short_description = ("TOTAL")
 
 
 # Define the Order class
@@ -35,16 +34,22 @@ class OrderAdmin(admin.ModelAdmin):
         else:
             return []
 
+
     def save_model(self, request, obj, form, change):
         if not obj.pk: #only sets ordered_by during the first save
             obj.ordered_by = str(request.user)
+        if 'ordered_date' in form.changed_data:
+            messages.info(request, "Date has changed")
         super().save_model(request, obj, form, change)
 
 
-class CashRecordDetailInline(admin.TabularInline):
-    model = CashRecordDetail
+class StockDetailsInline(admin.TabularInline):
+    model = StockDetails
 
 
-@admin.register(CashRecord)
-class CashRecordAdmin(admin.ModelAdmin):
-    inlines = [CashRecordDetailInline]
+@admin.register(StockInstance)
+class StockAdmin(admin.ModelAdmin):
+    inlines = [StockDetailsInline]
+
+
+

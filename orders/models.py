@@ -1,5 +1,4 @@
 from django.db import models
-from enum import Enum
 import datetime
 
 
@@ -7,6 +6,9 @@ import datetime
 class Category(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
+
+    class Meta:
+        verbose_name_plural = 'Categories'
 
     def __str__(self):
         return self.name
@@ -40,7 +42,7 @@ class Ingredients(models.Model):
     per = models.CharField(max_length=10, choices= PER_MEASUREMENT, default='e', help_text='Measurement. Per box/tin/kg')
 
     def __str__(self):
-        return self.name
+        return f'{self.name}'
 
 
 class Suppliers(models.Model):
@@ -54,60 +56,82 @@ class Suppliers(models.Model):
         return self.name
 
 
-class StatusChoice(Enum):
-    OD = "Ordered"
-    RD = "Received"
-    RT = "Returned"
-
-
-class Status(models.Model):
+class StockInstance(models.Model):
     id = models.AutoField(primary_key=True)
-    status = models.CharField(max_length=10)
+    stock_date = models.DateField(default=datetime.date.today, unique=True)
+    STOCK_STATUS = (
+        ('New', 'New'),
+        ('In Progress', 'In Progress'),
+        ('Done', 'Done')
+    )
+
+    stock_status = models.CharField(choices=STOCK_STATUS, default='New', max_length=10)
 
     def __str__(self):
-        return self.status
+        return f'{self.stock_date}, {self.stock_status}'
+
+
+class StockDetails(models.Model):
+    stock_id = models.ForeignKey(StockInstance, on_delete=models.CASCADE)
+    ingredient_id = models.ForeignKey(Ingredients, on_delete= models.CASCADE)
+    quantity = models.IntegerField(default=0, null=True)
+
+    def __str__(self):
+        return f'{self.ingredient_id}, {self.quantity}'
 
 
 class Orders(models.Model):
     id = models.AutoField(primary_key=True)
     supplier_id = models.ForeignKey(Suppliers, on_delete=models.SET_NULL, null=True)
-    ordered_date = models.DateField()
-    order_status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True)
-    ordered_by = models.CharField(max_length=80)
-    order_total_before_tax = models.FloatField(default=0)
-    order_total_after_tax = models.FloatField(default=0)
-    gst_tax = models.FloatField(default=0)
+    ordered_date = models.DateField(default=datetime.date.today)
+    ORDER_STATUS = (
+        ('New', 'New'),
+        ('Received', 'Received'),
+        ('Paid', 'Paid')
+    )
+    PAYMENT_STATUS = (
+        ('Fully-Paid', 'Fully-Paid'),
+        ('Partial', 'Partial'),
+        ('Not-Paid', 'Not-Paid')
+    )
+    order_status = models.CharField(choices=ORDER_STATUS, max_length=20, default='Received')
+    ordered_by = models.CharField(max_length=80, blank=True, default='WC')
+    pay_status = models.CharField(choices=PAYMENT_STATUS, max_length=20, default='Not-Paid')
 
     class Meta:
-        ordering = ['order_status']
+        ordering = ['ordered_date']
         verbose_name = 'Order'
+        verbose_name_plural = 'Orders'
 
     def __str__(self):
-        return f'{self.id}, ({self.order_status})'
+        return f'{self.id}'
 
 
 class OrderDetails(models.Model):
     id = models.AutoField(primary_key=True)
-    order_id = models.ForeignKey(Orders, on_delete=models.SET_NULL, null=True)
+    order_id = models.ForeignKey(Orders, on_delete=models.PROTECT, null=True)
     ingredient_id = models.ForeignKey(Ingredients, on_delete=models.SET_NULL, null=True)
-    status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True)
     transaction_date = models.DateField(default=datetime.date.today)
-    unitPrice = models.FloatField(default=0)
-    quantity = models.IntegerField(default=0, null=True)
-    unitPrice_before_tax = models.FloatField(default=0)
-    unitPrice_tax = models.FloatField(default=0)
-    itemTotal = models.FloatField(default=0)
+    unitPrice = models.DecimalField(default=0, max_digits=9, decimal_places=2)
+    quantity = models.DecimalField(default=0, max_digits=6, decimal_places=2)
+    unitPrice_before_tax = models.DecimalField(default=0, max_digits=9, decimal_places=2)
+    unitPrice_tax = models.DecimalField(default=0, max_digits=9, decimal_places=2)
+    itemTotal = models.DecimalField(default=0, max_digits=9, decimal_places=2)
+
+    class Meta:
+        verbose_name = 'Order Details'
+        verbose_name_plural = 'Order Details'
 
     def __str__(self):
-        return f'{self.id} ({self.ingredient_id.name}) ({self.ingredient_id.per})'
+        return f'{self.id}'
 
     def get_measurement(self):
         return self.ingredient_id.per
 
     def get_item_value(self):
-        item_price = self.unitPrice * self.quantity
-        self.unitPrice_before_tax= item_price
-        return item_price
+        item_total = self.unitPrice * self.quantity
+        self.itemTotal = item_total
+        return item_total
 
     def get_tax_value(self):
         tax_price = self.get_item_value() * self.ingredient_id.GSTRate / 100
@@ -115,23 +139,14 @@ class OrderDetails(models.Model):
         return tax_price
 
     def save(self, *args, **kwargs):
-        self.itemTotal = self.get_item_value() + self.get_tax_value()
-        self.transaction_date = self.order_id.ordered_date
+        self.unitPrice_before_tax = self.get_item_value() - self.get_tax_value()
         super(OrderDetails, self).save(*args, **kwargs)
-
-
-class Stock(models.Model):
-    id = models.AutoField(primary_key=True)
-    ingredient_id = models.ForeignKey(Ingredients, on_delete=models.SET_NULL, null=True)
-
-    def __str__(self):
-        return f'{self.id}, {self.ingredient_id}'
 
 
 class CashRecord(models.Model):
     TransactDate = models.DateField(unique=True, default=datetime.date.today)
-    OpeningBalance = models.FloatField(default=0)
-    CurrentBalance = models.FloatField(default=0)
+    OpeningBalance = models.DecimalField(default=0, max_digits=9, decimal_places=2)
+    CurrentBalance = models.DecimalField(default=0, max_digits=9, decimal_places=2)
 
     def __str__(self):
         return f'{self.TransactDate}'
@@ -147,7 +162,7 @@ class CashRecordDetail(models.Model):
         ('Credit', 'Credit')
     )
     Type = models.CharField(choices=Cash_option, default='Debit', max_length= 6)
-    Amount = models.FloatField(default=0)
+    Amount = models.DecimalField(default=0, max_digits=9, decimal_places=2)
 
     def __str__(self):
         return f'{self.cashRecordId}'
